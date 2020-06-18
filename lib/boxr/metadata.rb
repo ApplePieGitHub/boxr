@@ -29,6 +29,13 @@ module Boxr
       metadata
     end
 
+    def all_folder_metadata(folder)
+      folder_id = ensure_id(folder)
+      uri = "#{FOLDER_METADATA_URI}/#{folder_id}/metadata"
+      all_metadata, response = get(uri)
+      all_metadata
+    end
+
     def all_metadata(file)
       file_id = ensure_id(file)
       uri = "#{FILE_METADATA_URI}/#{file_id}/metadata"
@@ -77,12 +84,33 @@ module Boxr
       ent_metadata, response = get(uri)
       ent_metadata
     end
+    alias :get_enterprise_templates :enterprise_metadata
 
     def metadata_schema(scope, template_key)
       uri = "#{METADATA_TEMPLATES_URI}/#{scope}/#{template_key}/schema"
       schema, response = get(uri)
       schema
     end
+    alias :get_metadata_template_by_name :metadata_schema
 
+    def create_metadata_template(display_name, template_key: nil, fields: [], hidden: nil)
+      uri = "#{METADATA_TEMPLATES_URI}/schema"
+      schema = {
+        scope: "enterprise",
+        displayName: display_name,
+      }
+      schema[:templateKey] = template_key unless template_key.nil?
+      schema[:hidden] = hidden unless hidden.nil?
+      schema[:fields] = fields unless fields.empty?
+
+      metadata_template, response = post(uri, schema, content_type: "application/json")
+      metadata_template
+    end
+
+    def delete_metadata_template(scope, template_key)
+      uri = "#{METADATA_TEMPLATES_URI}/#{scope}/#{template_key}/schema"
+      result, response = delete(uri)
+      result
+    end
   end
 end

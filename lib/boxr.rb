@@ -11,6 +11,7 @@ require 'boxr/client'
 require 'boxr/shared_items'
 require 'boxr/folders'
 require 'boxr/files'
+require 'boxr/chunked_uploads'
 require 'boxr/comments'
 require 'boxr/users'
 require 'boxr/groups'
@@ -24,17 +25,24 @@ require 'boxr/auth'
 require 'boxr/web_links'
 require 'boxr/watermarking'
 
-module Enumerable
+class BoxrCollection < Array
   def files
-    self.select{|i| i.type == 'file'}
+    collection_for_type('file')
   end
 
   def folders
-    self.select{|i| i.type == 'folder'}
+    collection_for_type('folder')
   end
 
   def web_links
-    self.select{|i| i.type == 'web_link'}
+    collection_for_type('web_link')
+  end
+
+  private
+
+  def collection_for_type(type)
+    items = select { |i| i.type == type }
+    BoxrCollection.new(items)
   end
 end
 

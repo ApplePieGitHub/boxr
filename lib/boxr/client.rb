@@ -8,6 +8,8 @@ module Boxr
     #UPLOAD_URI = "https://upload.wcheng.inside-box.net/api/2.0"
 
     API_URI = "https://api.box.com/2.0"
+    AUTH_URI = "https://api.box.com/oauth2/token"
+    REVOKE_AUTH_URI = "https://api.box.com/oauth2/revoke"
     UPLOAD_URI = "https://upload.box.com/api/2.0"
     FILES_URI = "#{API_URI}/files"
     FILES_UPLOAD_URI = "#{UPLOAD_URI}/files/content"
@@ -133,18 +135,20 @@ module Boxr
         end
       end until offset - total_count >= 0
 
-      entries.flatten.map{|i| BoxrMash.new(i)}
+      BoxrCollection.new(entries.flatten.map{ |i| BoxrMash.new(i) })
     end
 
-    def post(uri, body, query: nil, success_codes: [201], process_body: true, content_md5: nil, content_type: nil, if_match: nil)
+    def post(uri, body, query: nil, success_codes: [201], process_body: true, digest: nil, content_md5: nil, content_type: nil, if_match: nil, if_non_match: nil)
       uri = Addressable::URI.encode(uri)
       body = JSON.dump(body) if process_body
 
       res = with_auto_token_refresh do
         headers = standard_headers
         headers['If-Match'] = if_match unless if_match.nil?
+        headers['If-Non-Match'] = if_non_match unless if_non_match.nil?
         headers["Content-MD5"] = content_md5 unless content_md5.nil?
         headers["Content-Type"] = content_type unless content_type.nil?
+        headers["Digest"] = digest unless digest.nil?
 
         BOX_CLIENT.post(uri, body: body, query: query, header: headers)
       end
@@ -154,15 +158,18 @@ module Boxr
       processed_response(res)
     end
 
-    def put(uri, body, query: nil, success_codes: [200, 201], content_type: nil, if_match: nil)
+    def put(uri, body, query: nil, success_codes: [200, 201], process_body: true, content_type: nil, content_range: nil, digest: nil, if_match: nil)
       uri = Addressable::URI.encode(uri)
+      body = JSON.dump(body) if process_body
 
       res = with_auto_token_refresh do
         headers = standard_headers
         headers['If-Match'] = if_match unless if_match.nil?
         headers["Content-Type"] = content_type unless content_type.nil?
+        headers["Content-Range"] = content_range unless content_range.nil?
+        headers["Digest"] = digest unless digest.nil?
 
-        BOX_CLIENT.put(uri, body: JSON.dump(body), query: query, header: headers)
+        BOX_CLIENT.put(uri, body: body, query: query, header: headers)
       end
 
       check_response_status(res, success_codes)
